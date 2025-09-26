@@ -12,7 +12,17 @@ Who was the captain when India won its first World Cup in 1983?
 When did India win the inaugural ICC T20 World Cup?
 
 * GET  / : Response with a welcome message
-* Post /ask:  accepts a context and question and returns the answer and it's confidence score
+* POST /ask:  accepts a context and question and returns the answer and it's confidence score
+* POST /ask_file: to upload(.txt/.pdf) for context
+* Returns:
+  1. Answer: Based context
+  2. Confidence score: Confidence of model in extracting the 
+     answer from the context
+  3. Start:The index of the character in the context that corresponds 
+     to the start of the extracted answer.
+  4. End:The index of the character in the context that corresponds 
+     to the end of the extracted answer.
+* Used Streamlit for UI
 > Using Hugging Face's pipeline: 'question-answering'
 
 ## Technologies Used:
@@ -20,6 +30,7 @@ When did India win the inaugural ICC T20 World Cup?
 * Python
 * Flask
 * Hugging face
+* Streamlit
 
 ## Installation:
 
@@ -37,3 +48,13 @@ When did India win the inaugural ICC T20 World Cup?
 4. Run the application
 <pre>python app.py</pre>
 
+
+![alt text](home.png)
+
+### 'Text' option:
+
+![alt text](Text.png)
+
+### 'File' option
+
+![alt text](File.png)
