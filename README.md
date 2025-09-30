@@ -1,8 +1,9 @@
-# Question Answering App: Flask + Hugging Face
+# Question Answering App: Flask + Hugging Face + Streamlit (RAG)
 
 This is a Context based question answering app built with Flask and hugging face.
 It uses [deepset/roberta-base-squad2 model](https://huggingface.co/deepset/roberta-base-squad2) 
-to extract answer from a given context.
+to extract answer from a given context. It also has a feature to upload multiples .pdf or .txt and
+extract answer from them.
 
 ## Features
 
@@ -13,7 +14,8 @@ When did India win the inaugural ICC T20 World Cup?
 
 * GET  / : Response with a welcome message
 * POST /ask:  accepts a context and question and returns the answer and it's confidence score
-* POST /ask_file: to upload(.txt/.pdf) for context
+* POST /ask_file: to upload multiple(.txt/.pdf) for context
+* POST /ask_docs: to retrieve answers from the uploaded docs
 * Returns:
   1. Answer: Based context
   2. Confidence score: Confidence of model in extracting the 
@@ -23,6 +25,7 @@ When did India win the inaugural ICC T20 World Cup?
   4. End:The index of the character in the context that corresponds 
      to the end of the extracted answer.
 * Used Streamlit for UI
+* Chromadb to save the uploaded files
 > Using Hugging Face's pipeline: 'question-answering'
 
 ## Technologies Used:
@@ -31,6 +34,7 @@ When did India win the inaugural ICC T20 World Cup?
 * Flask
 * Hugging face
 * Streamlit
+* Chromadb
 
 ## Installation:
 
@@ -47,7 +51,7 @@ When did India win the inaugural ICC T20 World Cup?
 
 4. Run the application
 <pre>python app.py</pre>
-
+<pre>streamlit run streamlit.py</pre>
 
 ![alt text](home.png)
 
@@ -57,4 +61,12 @@ When did India win the inaugural ICC T20 World Cup?
 
 ### 'File' option
 
-![alt text](File.png)
+1. Upload & Save Documents: We can upload multiples files(.txt/.pdf)
+
+![alt text](upload_file.png)
+
+
+2. Ask a question from the saved file
+   > Correct answer was Rohit Sharma (mentioned in the Sachin.pdf)
+
+![alt text](Question.png)

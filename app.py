@@ -1,7 +1,14 @@
 from flask import Flask, request, jsonify
 from transformers import pipeline
 import PyPDF2
+import uuid
+import chromadb
+from chromadb.utils import embedding_functions
 
+chroma_client = chromadb.PersistentClient(path="./chroma_db")
+collection = chroma_client.get_or_create_collection(name="docs_collection",
+embedding_function=embedding_functions.SentenceTransformerEmbeddingFunction(model_name="all-MiniLM-L6-v2")
+)
 
 model = "deepset/roberta-base-squad2"
 qa_pipeline = pipeline("question-answering", model=model)
@@ -39,7 +46,6 @@ def extract_text(uploaded_file):
     
     elif uploaded_file.filename.endswith(".pdf"):
         reader = PyPDF2.PdfReader(uploaded_file)
-
         text = ""
         for page in reader.pages:
             text += page.extract_text() + " "
@@ -65,25 +71,49 @@ def ask_questions():
     return jsonify({"Answer": result['answer'], "confidence_score": result['score'], "Start": result['start'],"End":result['end']})
 
 @app.route('/ask_file', methods=['POST'])
-def ask_file():
-    if 'file' not in request.files:
-        return jsonify({"error": "No file uploaded"}), 400
+def upload_docs():
+    if 'files' not in request.files:
+        return jsonify({"error": "No files uploaded"}), 400
 
-    uploaded_file = request.files['file']
-    question = request.form['question']
+    uploaded_files = request.files.getlist("files")
+    stored_files = []
+    for uploaded_file in uploaded_files:
+        text = extract_text(uploaded_file)
+        if text is None:
+            continue
+        doc_name = uploaded_file.filename
+        for chunk in split_text(text):
+            collection.add(
+                documents=[chunk],
+                metadatas=[{"source": doc_name}],
+                ids=[str(uuid.uuid4())]
+            )
+        stored_files.append(doc_name)
 
-    context = extract_text(uploaded_file)
-    if context is None:
-        return jsonify({"error": "Error"}), 400
+    return jsonify({"message": "Files uploaded successfully", "stored_files": stored_files})
 
-    best_answer = ""
-    for chunk in split_text(context):
-        result = qa_pipeline(question=question, context=chunk)
-        if not best_answer or result['score'] > best_answer['score']:
-            best_answer = result
+@app.route('/ask_docs', methods=['POST'])
+def ask_docs():
+    data = request.get_json()
+    if not data or 'question' not in data:
+        return jsonify({"error": "Write a question"}), 400
 
-    return jsonify({"answer": best_answer['answer'],"confidence_score": best_answer['score'],
-        "start": best_answer['start'],"end": best_answer['end']})
+    question = data['question']
+    results = collection.query(query_texts=[question], n_results=3)
+
+    if not results['documents'] or len(results['documents'][0]) == 0:
+        return jsonify({"answers": []})
+    
+    answers = []
+    for i, context in enumerate(results['documents'][0]):
+        qa_result = qa_pipeline(question=question, context=context)
+        answers.append({
+            "answer": qa_result['answer'],
+            "confidence_score": qa_result['score'],
+            "source_doc": results['metadatas'][0][i]['source']
+        })
+    return jsonify({"answers": answers})
+
 
 if __name__ == '__main__':
     app.run(debug=True)
