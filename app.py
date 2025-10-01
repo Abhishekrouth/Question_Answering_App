@@ -4,6 +4,8 @@ import PyPDF2
 import uuid
 import chromadb
 from chromadb.utils import embedding_functions
+import json
+import os
 
 chroma_client = chromadb.PersistentClient(path="./chroma_db")
 collection = chroma_client.get_or_create_collection(name="docs_collection",
@@ -14,6 +16,19 @@ model = "deepset/roberta-base-squad2"
 qa_pipeline = pipeline("question-answering", model=model)
 
 app = Flask(__name__)
+SESSIONS_FILE = "sessions.json"
+
+def load_sessions():
+    if os.path.exists(SESSIONS_FILE):
+        with open(SESSIONS_FILE, "r") as f:
+            return json.load(f)
+    return {}
+
+def save_sessions():
+    with open(SESSIONS_FILE, "w") as f:
+        json.dump(sessions, f)
+
+sessions = load_sessions()
 
 context = """
 The Indian cricket team, also known as the “Men in Blue,” is one of the most successful teams in world cricket.
@@ -52,12 +67,11 @@ def extract_text(uploaded_file):
         return text
     else:
         return None
-    
-def split_text(text, max_length=300):
+        
+def split_text(text, max_length=200):
     words = text.split()
     for i in range(0, len(words), max_length):
         yield " ".join(words[i:i + max_length])
-
 
 @app.route('/', methods = ['GET'])
 def home():
@@ -70,41 +84,46 @@ def ask_questions():
     result = qa_pipeline(question=question, context=context)
     return jsonify({"Answer": result['answer'], "confidence_score": result['score'], "Start": result['start'],"End":result['end']})
 
-@app.route('/ask_file', methods=['POST'])
-def upload_docs():
-    if 'files' not in request.files:
-        return jsonify({"error": "No files uploaded"}), 400
+@app.route('/start_session', methods=['POST'])
+def start_session():
+    data = request.json
+    name = data.get("name")
+    if not name:
+        return jsonify({"error": "Session name required"}), 400
+    if name not in sessions:
+        sessions[name] = {"id": str(uuid.uuid4()), "history": []}
+        save_sessions()
+    return jsonify({"session_name": name, "session_id": sessions[name]["id"]})
 
-    uploaded_files = request.files.getlist("files")
-    stored_files = []
-    for uploaded_file in uploaded_files:
-        text = extract_text(uploaded_file)
-        if text is None:
-            continue
-        doc_name = uploaded_file.filename
-        for chunk in split_text(text):
-            collection.add(
-                documents=[chunk],
-                metadatas=[{"source": doc_name}],
-                ids=[str(uuid.uuid4())]
-            )
-        stored_files.append(doc_name)
-
-    return jsonify({"message": "Files uploaded successfully", "stored_files": stored_files})
-
-@app.route('/ask_docs', methods=['POST'])
-def ask_docs():
+@app.route('/ask_session', methods=['POST'])
+def ask_session():
     data = request.get_json()
-    if not data or 'question' not in data:
-        return jsonify({"error": "Write a question"}), 400
-
-    question = data['question']
-    results = collection.query(query_texts=[question], n_results=3)
-
-    if not results['documents'] or len(results['documents'][0]) == 0:
-        return jsonify({"answers": []})
+    if "files" in data:
+        uploaded_files = data["files"]
+        stored_files = []
+        for f in uploaded_files:
+            text = f["content"]
+            doc_name = f["filename"]
+            for chunk in split_text(text):
+                collection.add(
+                    documents=[chunk],
+                    metadatas=[{"source": doc_name}],
+                    ids=[str(uuid.uuid4())]
+                )
+            stored_files.append(doc_name)
+        return jsonify({"message": "Files uploaded successfully", "stored_files": stored_files})
     
+    name = data.get("name")
+    question = data.get("question")
+
+    if not name or name not in sessions:
+        return jsonify({"error": "Invalid session name"}), 400
+
+    history = sessions[name]["history"]
+
+    results = collection.query(query_texts=[question], n_results=5)
     answers = []
+
     for i, context in enumerate(results['documents'][0]):
         qa_result = qa_pipeline(question=question, context=context)
         answers.append({
@@ -112,7 +131,40 @@ def ask_docs():
             "confidence_score": qa_result['score'],
             "source_doc": results['metadatas'][0][i]['source']
         })
-    return jsonify({"answers": answers})
+
+    best_answer = max(answers, key=lambda x: x['confidence_score'])
+
+    history.append({
+        "question": question,
+        "answer": best_answer['answer'],
+        "source_doc": best_answer['source_doc']
+    })
+    save_sessions()
+
+    return jsonify({
+        "answer": best_answer['answer'],
+        "history": history
+    })
+
+@app.route('/list_sessions', methods=['GET'])
+def list_sessions():
+    return jsonify({"sessions": list(sessions.keys())})
+
+@app.route('/clear_session/<name>', methods=['GET'])
+def clear_session(name):
+    if name in sessions:
+        sessions[name]["history"] = []
+        save_sessions()
+        return f"Session {name} cleared."
+    return "Invalid session name", 400
+
+@app.route('/delete_session/<name>', methods=['GET'])
+def delete_session(name):
+    if name in sessions:
+        del sessions[name]
+        save_sessions()
+        return f"Session {name} deleted."
+    return "Invalid session name", 400
 
 
 if __name__ == '__main__':

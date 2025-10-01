@@ -3,7 +3,7 @@
 This is a Context based question answering app built with Flask and hugging face.
 It uses [deepset/roberta-base-squad2 model](https://huggingface.co/deepset/roberta-base-squad2) 
 to extract answer from a given context. It also has a feature to upload multiples .pdf or .txt and
-extract answer from them.
+extract answer from them. It can also store history of conversation and can reply contextually.
 
 ## Features
 
@@ -16,14 +16,12 @@ When did India win the inaugural ICC T20 World Cup?
 * POST /ask:  accepts a context and question and returns the answer and it's confidence score
 * POST /ask_file: to upload multiple(.txt/.pdf) for context
 * POST /ask_docs: to retrieve answers from the uploaded docs
-* Returns:
-  1. Answer: Based context
-  2. Confidence score: Confidence of model in extracting the 
-     answer from the context
-  3. Start:The index of the character in the context that corresponds 
-     to the start of the extracted answer.
-  4. End:The index of the character in the context that corresponds 
-     to the end of the extracted answer.
+* POST /start_session: creates a session ID
+* POST /ask_session to extract answer contextually
+* Start Session: To start a new or resume an old session
+* List Session: To check the list of existing sessions
+* Clear Session: To clear current history and session
+* Delete Session: To Delete a session
 * Used Streamlit for UI
 * Chromadb to save the uploaded files
 > Using Hugging Face's pipeline: 'question-answering'
@@ -61,12 +59,26 @@ When did India win the inaugural ICC T20 World Cup?
 
 ### 'File' option
 
-1. Upload & Save Documents: We can upload multiples files(.txt/.pdf)
+1. Start or Resume a Session
 
-![alt text](upload_file.png)
+![alt text](startsession.png)
 
+2. List all existing sessions
 
-2. Ask a question from the saved file
-   > Correct answer was Rohit Sharma (mentioned in the Sachin.pdf)
+![alt text](list_session.png)
 
-![alt text](Question.png)
+3. Upload multiples pdf/txt files
+
+![alt text](uploads.png)
+
+4. Ask a question from uploaded files
+
+![alt text](Ask.png)
+
+5. Clear history/Session
+
+![alt text](Clear_session.png)
+
+6. Delete a session
+
+![alt text](Delete_session.png)
