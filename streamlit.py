@@ -27,7 +27,7 @@ if option == "Text":
             st.warning("Provide both context and question.")
 
 elif option == "File":
-     opt = st.radio("Choose an option:", ["Start/Resume Session","List Sessions","Upload Documents", "Ask Question", "Clear Sessions", "Delete Sessions"])
+     opt = st.radio("Choose an option:", ["Start/Resume Session","List Sessions","Upload Documents", "Ask Question", "Ask refined", "Clear Sessions", "Delete Sessions"])
      if opt == "Upload Documents":
         uploaded_files = st.file_uploader("Upload txt/PDF files", type=["txt", "pdf"], accept_multiple_files=True)
         if uploaded_files and st.button("Upload"):
@@ -84,6 +84,18 @@ elif option == "File":
                             st.write(f"Source: {h['source_doc']}")
                     else:
                         st.error(r.text)
+     elif opt == "Ask refined":
+        q = st.text_input("Enter your question")
+        if q and st.button("Ask Refined"):
+            r = requests.post(f"http://127.0.0.1:5000/ask_refined", json={"question": q})
+            if r.status_code == 200:
+                data = r.json()
+                st.write(f"**Raw Answer:** {data['raw_answer']}")
+                st.write(f"**Refined Answer:** {data['refined_answer']}")
+                st.markdown("### Source Documents")
+                unique_docs = list(dict.fromkeys(data["source_docs"]))  
+                for i, doc in enumerate(unique_docs, 1):  
+                    st.write(f"{i}. {doc}")
 
      elif opt == "List Sessions":
         r = requests.get("http://127.0.0.1:5000/list_sessions")

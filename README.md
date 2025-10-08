@@ -18,6 +18,7 @@ When did India win the inaugural ICC T20 World Cup?
 * POST /ask_docs: to retrieve answers from the uploaded docs
 * POST /start_session: creates a session ID
 * POST /ask_session to extract answer contextually
+* POST /ask_refined: Generative Answer Refinement 
 * Start Session: To start a new or resume an old session
 * List Session: To check the list of existing sessions
 * Clear Session: To clear current history and session
@@ -51,34 +52,38 @@ When did India win the inaugural ICC T20 World Cup?
 <pre>python app.py</pre>
 <pre>streamlit run streamlit.py</pre>
 
-![alt text](home.png)
+![alt text](images/home.png)
 
 ### 'Text' option:
 
-![alt text](Text.png)
+![alt text](images/Text.png)
 
 ### 'File' option
 
 1. Start or Resume a Session
 
-![alt text](startsession.png)
+![alt text](images/startsession.png)
 
 2. List all existing sessions
 
-![alt text](list_session.png)
+![alt text](images/list_session.png)
 
 3. Upload multiples pdf/txt files
 
-![alt text](uploads.png)
+![alt text](images/uploads.png)
 
 4. Ask a question from uploaded files
 
-![alt text](Ask.png)
+![alt text](images/Ask.png)
 
 5. Clear history/Session
 
-![alt text](Clear_session.png)
+![alt text](images/Clear_session.png)
 
 6. Delete a session
 
-![alt text](Delete_session.png)
+![alt text](images/Delete_session.png)
+
+7. Generative Answer
+
+![alt text](images/ask_refined.png)

@@ -14,6 +14,7 @@ embedding_function=embedding_functions.SentenceTransformerEmbeddingFunction(mode
 
 model = "deepset/roberta-base-squad2"
 qa_pipeline = pipeline("question-answering", model=model)
+refine = pipeline("text2text-generation", model="google/flan-t5-base")
 
 app = Flask(__name__)
 SESSIONS_FILE = "sessions.json"
@@ -68,7 +69,7 @@ def extract_text(uploaded_file):
     else:
         return None
         
-def split_text(text, max_length=200):
+def split_text(text, max_length=500):
     words = text.split()
     for i in range(0, len(words), max_length):
         yield " ".join(words[i:i + max_length])
@@ -166,6 +167,29 @@ def delete_session(name):
         return f"Session {name} deleted."
     return "Invalid session name", 400
 
+@app.route('/ask_refined', methods = ['POST'])
+def refined():
+    data = request.get_json()
+    question = data.get('question')
+    result = collection.query(query_texts=[question], n_results=5)
+    top_contexts = " ".join(sum(result["documents"], []))
+    source_docs = [meta["source"] for meta in result["metadatas"][0]]
+    raw_result = qa_pipeline(question=question, context=top_contexts)
+    raw_answer = raw_result["answer"]
+
+    input = f"""
+    Question: {question}
+    Raw Answer: {raw_answer}
+    Context: {top_contexts}
+
+    Return only a concise factual answer strictly relevant to the question. 
+    Do not include extra details or timeline unless the question asks for it.
+    Keep the answer relevant to the context of question.
+    """
+
+    refined = refine(input, max_length=130, do_sample=False)[0]["generated_text"].strip()
+
+    return jsonify({"raw_answer": raw_answer,"refined_answer": refined,"source_docs": source_docs})
 
 if __name__ == '__main__':
     app.run(debug=True)
