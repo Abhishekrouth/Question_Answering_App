@@ -27,7 +27,7 @@ if option == "Text":
             st.warning("Provide both context and question.")
 
 elif option == "File":
-     opt = st.radio("Choose an option:", ["Start/Resume Session","List Sessions","Upload Documents", "Ask Question", "Ask refined", "Clear Sessions", "Delete Sessions"])
+     opt = st.radio("Choose an option:", ["Start/Resume Session","List Sessions","Upload Documents", "Ask Question", "Ask refined", "Evaluate System", "Clear Sessions", "Delete Sessions"])
      if opt == "Upload Documents":
         uploaded_files = st.file_uploader("Upload txt/PDF files", type=["txt", "pdf"], accept_multiple_files=True)
         if uploaded_files and st.button("Upload"):
@@ -118,5 +118,12 @@ elif option == "File":
              r = requests.get(f"http://127.0.0.1:5000/delete_session/{session_name}")
              st.write(r.text)
 
+     elif opt == "Evaluate System":
+         if st.button("Run Evaluation"):
+            r = requests.post("http://127.0.0.1:5000/evaluate")
+            if r.status_code == 200:
+                st.json(r.json())
+            else:
+                st.error(r.text)
 
 

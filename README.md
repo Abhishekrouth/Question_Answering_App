@@ -19,6 +19,7 @@ When did India win the inaugural ICC T20 World Cup?
 * POST /start_session: creates a session ID
 * POST /ask_session to extract answer contextually
 * POST /ask_refined: Generative Answer Refinement 
+* POST /evaluate: to check app accuracy
 * Start Session: To start a new or resume an old session
 * List Session: To check the list of existing sessions
 * Clear Session: To clear current history and session
@@ -34,6 +35,7 @@ When did India win the inaugural ICC T20 World Cup?
 * Hugging face
 * Streamlit
 * Chromadb
+* scikit-learn
 
 ## Installation:
 
@@ -87,3 +89,7 @@ When did India win the inaugural ICC T20 World Cup?
 7. Generative Answer
 
 ![alt text](images/ask_refined.png)
+
+8. Evaluate
+
+![alt text](images/evaluation.png)
